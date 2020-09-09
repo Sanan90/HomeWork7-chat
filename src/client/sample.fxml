@@ -3,6 +3,31 @@
 
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
-<GridPane fx:controller="client.Controller"
-          xmlns:fx="http://javafx.com/fxml" alignment="center" hgap="10" vgap="10">
-</GridPane>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.TextField?>
+<?import java.net.URL?>
+<VBox fx:controller="client.Controller"
+      xmlns:fx="http://javafx.com/fxml" alignment="center">
+
+    <stylesheets>
+<!--        <URL value="@/client/style.css"/>-->
+    </stylesheets>
+
+    <HBox fx:id="authPanel" visible="true" managed="true">
+        <TextField fx:id="logindField" promptText="login" HBox.hgrow="ALWAYS"/>
+        <TextField fx:id="passwordField" promptText="password" HBox.hgrow="ALWAYS"
+                   onAction="#tryToLogin"/>
+        <Button text="auth" onAction="#tryToLogin" minWidth="50"/>
+    </HBox>
+
+    <TextArea fx:id="textArea" VBox.vgrow="ALWAYS" editable="false"/>
+
+    <HBox fx:id="mshPanel" visible="false" managed="false">
+        <TextField fx:id="textField" promptText="input message" HBox.hgrow="ALWAYS"
+                   onAction="#sendMsg"/>
+        <Button text="send" onAction="#sendMsg"/>
+    </HBox>
+
+</VBox>
