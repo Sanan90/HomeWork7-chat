@@ -11,7 +11,7 @@ import java.util.Scanner;
 import java.util.Vector;
 
 public class Server {
-    List<ClientHandler> clients;
+    private List<ClientHandler> clients;
 
     private AuthService authService;
 
@@ -50,31 +50,54 @@ public class Server {
     }
 
     public void broadcastMsg(ClientHandler sender, String msg) {
-
-        if (msg.startsWith("/w")) {
-            String[] personal = msg.split("\\s", 3);
-            String nick = personal[1];
-            String msg2 = personal[2];
-            String message = String.format("%s : %s", sender.getNickname(), msg2);
-            for (ClientHandler client : clients) {
-                if (client.getNickname().equals(nick) || client.getNickname() == sender.getNickname()) {
-                    client.sendMsg(message);
-                }
-            }
-        } else {
             String message = String.format("%s : %s", sender.getNickname(), msg);
             for (ClientHandler client : clients) {
                 client.sendMsg(message);
             }
         }
-    }
+
+        public void privateMsg (ClientHandler sender, String receiver, String msg) {
+            String message = String.format("[%s] private [%s] : %s", sender.getNickname(), receiver, msg);
+            for (ClientHandler client : clients) {
+                if (client.getNickname().equals(receiver)) {
+                    client.sendMsg(message);
+                    if (!client.equals(sender)) {
+                        sender.sendMsg(message);
+                    }
+                    return;
+                }
+            }
+            sender.sendMsg("Не найден пользователь с ником " + receiver);
+        }
 
     public void subscribe(ClientHandler clientHandler) {
         clients.add(clientHandler);
+        broadcastClientList();
     }
 
     public void unsubscribe(ClientHandler clientHandler) {
         clients.remove(clientHandler);
+        broadcastClientList();
+    }
+    
+    public boolean isLoginAuthenticated(String login) {
+        for (ClientHandler client : clients) {
+            if (client.getLogin().equals(login)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void broadcastClientList() {
+        StringBuilder sb = new StringBuilder("/clientlist ");
+        for (ClientHandler client : clients) {
+            sb.append(client.getNickname()).append(" ");
+        }
+        String msg = sb.toString();
+        for (ClientHandler client : clients) {
+            client.sendMsg(msg);
+        }
     }
 
 }

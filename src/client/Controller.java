@@ -2,12 +2,20 @@ package client;
 
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -31,9 +39,11 @@ public class Controller implements Initializable {
     public TextField passwordField;
     @FXML
     public HBox mshPanel;
-
+    @FXML
+    public ListView<String> clientList;
     private final String IP_ADDRESS = "localhost";
     private final int PORT = 8189;
+
 
     private Socket socket;
     DataInputStream in;
@@ -43,12 +53,18 @@ public class Controller implements Initializable {
     private String  nickname;
     private final String TITLE = "";
 
+    private Stage stage;
+    private Stage regStage;
+    private RegController regController;
+
     public void setAuthenticated(boolean authenticated) {
         this.authenticated = authenticated;
         mshPanel.setVisible(authenticated);
         mshPanel.setManaged(authenticated);
         authPanel.setVisible(!authenticated);
         authPanel.setManaged(!authenticated);
+        clientList.setVisible(authenticated);
+        clientList.setManaged(authenticated);
 
         if (!authenticated) {
             nickname = "";
@@ -59,6 +75,22 @@ public class Controller implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         setAuthenticated(false);
+        createRegWindow();
+        Platform.runLater(()->{
+            stage = (Stage) textField.getScene().getWindow();
+            stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+                @Override
+                public void handle(WindowEvent event) {
+                    if (socket != null && !socket.isClosed()) {
+                        try {
+                            out.writeUTF("/end");
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            });
+        });
     }
 
     private void connect() {
@@ -75,32 +107,50 @@ public class Controller implements Initializable {
                         while (true) {
                             String str = in.readUTF();
 
+                            if (str.equals("/end")) {
+                                out.writeUTF("/end");
+                            }
+
                             if (str.startsWith("/authok")) {
-                                nickname = str.split(" ", 2) [1];
+                                nickname = str.split(" ", 2)[1];
                                 setAuthenticated(true);
+                                textArea.clear();
                                 break;
                             }
 
-                            LocalDateTime time = LocalDateTime.now();
-                            DateTimeFormatter format = DateTimeFormatter.ofPattern("HH:mm:ss");
-                            String afterFormat = time.format(format);
+                            if (str.startsWith("/regok")) {
+                                regController.addMsgToTextArea(" =) Регистрация прошла успешно");
+                            }
+                            if (str.startsWith("/regno")) {
+                                regController.addMsgToTextArea(" =( Регистрация не прошла");
+                            } else {
 
-                            textArea.appendText(afterFormat + ": " + str + "\n");
+                                LocalDateTime time = LocalDateTime.now();
+                                DateTimeFormatter format = DateTimeFormatter.ofPattern("HH:mm:ss");
+                                String afterFormat = time.format(format);
+
+                                textArea.appendText(afterFormat + ": " + str + "\n");
+                            }
                         }
-
-
 
                         while (true) {
                             String str = in.readUTF();
 
-                            if (str.equals("/end")) {
-                                break;
-                            }
-
-                            if (str.startsWith("/w")){
-                                String[] personal = str.split("\\s", 3);
+                            if (str.startsWith("/")) {
+                                if (str.equals("/end")) {
+                                    break;
+                                }
 
 
+                                if (str.startsWith("/clientlist ")) {
+                                    String[] token = str.split("\\s");
+                                    Platform.runLater(()->{
+                                        clientList.getItems().clear();
+                                        for (int i = 1; i < token.length; i++) {
+                                            clientList.getItems().add(token[i]);
+                                        }
+                                    });
+                                }
                             }
 
                             LocalDateTime time = LocalDateTime.now();
@@ -160,4 +210,45 @@ public class Controller implements Initializable {
             ((Stage) textField.getScene().getWindow()).setTitle(TITLE + nick);
         });
     }
+    public void clickClientList(MouseEvent mouseEvent) {
+        String receiver = clientList.getSelectionModel().getSelectedItem();
+        textField.setText("/w " + receiver + " ");
+    }
+
+    private void createRegWindow() {
+        try {
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("reg.fxml"));
+            Parent root = fxmlLoader.load();
+            regStage = new Stage();
+            regStage.setTitle("Окно регистрации");
+            regStage.setScene(new Scene(root, 300, 200));
+
+            regController = fxmlLoader.getController();
+            regController.setController(this);
+
+            regStage.initModality(Modality.APPLICATION_MODAL);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void registratioin(ActionEvent actionEvent) {
+        regStage.show();
+    }
+
+    public void tryToReg(String login, String password, String nickName) {
+        String msg = String.format("/reg %s %s %s", login, password, nickName );
+
+        if (socket == null || socket.isClosed()) {
+            connect();
+        }
+
+        try {
+            out.writeUTF(msg);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 }
