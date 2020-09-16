@@ -114,6 +114,7 @@ public class Controller implements Initializable {
                             if (str.startsWith("/authok")) {
                                 nickname = str.split(" ", 2)[1];
                                 setAuthenticated(true);
+                                textArea.clear();
                                 break;
                             }
 
@@ -220,7 +221,7 @@ public class Controller implements Initializable {
             Parent root = fxmlLoader.load();
             regStage = new Stage();
             regStage.setTitle("Окно регистрации");
-            regStage.setScene(new Scene(root, 300, 150));
+            regStage.setScene(new Scene(root, 300, 200));
 
             regController = fxmlLoader.getController();
             regController.setController(this);

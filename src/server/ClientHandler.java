@@ -55,6 +55,7 @@ public class ClientHandler {
                                     server.subscribe(this);
                                     System.out.println("Клиент " + nickname + " подключен");
                                     socket.setSoTimeout(0);
+
                                     break;
                                 } else {
                                     sendMsg("Данной учеткой уже пользуются");
